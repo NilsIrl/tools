@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>{{ .Site.Title }}</title>
+</head>
+<body>
+	<a href="{{ .Site.BaseURL }}"><h1>Nils' Toolbox</h1></a>
+	<nav>
+		<ul>
+			{{ range .Site.RegularPages }}
+				<li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+			{{ end }}
+		</ul>
+	</nav>
+	{{ block "main" . }}
+	{{ end }}
+	<footer>
+		<a href="https://github.com/NilsIrl/tools">Source code</a>
+		<p>&copy; 2021 Nils André</p>
+	</footer>
+</body>
+</html>
