@@ -18,8 +18,8 @@ date: 2021-08-29T22:21:01+01:00
     </div>
     <input type="submit">
 </form>
-<script src="https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.js"></script>
-<script>
+<script type="module">
+    import * as openpgp from 'https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.mjs';
     let form = document.getElementById("form");
     form.addEventListener('submit', event => {
         event.preventDefault();
