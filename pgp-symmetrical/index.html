@@ -1,0 +1,37 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Nils' Toolbox - PGP Symmetrical Encryption/Decryption Online</title>
+</head>
+<body>
+<a href=https://tools.nilsand.re/><h1>Nils' Toolbox</h1></a>
+<nav>
+<ul>
+<li><a href=https://tools.nilsand.re/pgp-symmetrical/>PGP Symmetrical Encryption/Decryption Online</a></li><li><a href=https://tools.nilsand.re/handoutify/>Handoutify</a></li>
+</ul>
+</nav>
+<form id=form>
+<input type=file name=file id=file required>
+<div>
+<label for=key>Symmetric key: </label>
+<input type=password id=key name=key required>
+</div>
+<div>
+<input type=radio name=action value=decrypt id=decryptChoice checked>
+<label for=decryptChoice>Decrypt</label>
+</div>
+<div>
+<input type=radio name=action value=encrypt id=encryptChoice>
+<label for=encryptChoice>Encrypt</label>
+</div>
+<input type=submit>
+</form>
+<script src=https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.js></script>
+<script>let form=document.getElementById("form");form.addEventListener('submit',d=>{d.preventDefault();let b=document.getElementById("key").value,c=new FileReader,e=document.getElementById("decryptChoice").checked,a=document.getElementById("file").files[0];c.onload=async g=>{const c=document.createElement("a");let d,f;if(e){const c=await openpgp.readMessage({armoredMessage:g.target.result}),a=await openpgp.decrypt({message:c,passwords:b,format:"binary"});d=a.data,f=a.filename}else{const e=await openpgp.createMessage({text:g.target.result,filename:a.name,date:a.lastModified}),c=await openpgp.encrypt({message:e,passwords:b});d=c,f=a.name+".pgp",console.log(c)}const h=window.URL.createObjectURL(new Blob([d]));c.href=h,c.style.display="none",c.download=f,document.body.appendChild(c),c.click(),window.URL.revokeObjectURL(h),c.remove()},c.readAsBinaryString(a)})</script>
+<footer>
+<a href=https://github.com/NilsIrl/tools>Source code</a>
+<p>&copy; 2021 Nils André</p>
+</footer>
+</body>
+</html>
