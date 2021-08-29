@@ -27,8 +27,43 @@
 </div>
 <input type=submit>
 </form>
-<script src=https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.js></script>
-<script>let form=document.getElementById("form");form.addEventListener('submit',d=>{d.preventDefault();let b=document.getElementById("key").value,c=new FileReader,e=document.getElementById("decryptChoice").checked,a=document.getElementById("file").files[0];c.onload=async g=>{const c=document.createElement("a");let d,f;if(e){const c=await openpgp.readMessage({armoredMessage:g.target.result}),a=await openpgp.decrypt({message:c,passwords:b,format:"binary"});d=a.data,f=a.filename}else{const e=await openpgp.createMessage({text:g.target.result,filename:a.name,date:a.lastModified}),c=await openpgp.encrypt({message:e,passwords:b});d=c,f=a.name+".pgp",console.log(c)}const h=window.URL.createObjectURL(new Blob([d]));c.href=h,c.style.display="none",c.download=f,document.body.appendChild(c),c.click(),window.URL.revokeObjectURL(h),c.remove()},c.readAsBinaryString(a)})</script>
+<script type=module>
+    import * as openpgp from 'https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.mjs';
+    let form = document.getElementById("form");
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        let password = document.getElementById("key").value;
+        let reader = new FileReader();
+        let decryptChoice = document.getElementById("decryptChoice").checked;
+        let file = document.getElementById("file").files[0];
+        reader.onload = async (e) => {
+            const a = document.createElement("a");
+            let data;
+            let filename;
+            if (decryptChoice) {
+                const message = await openpgp.readMessage({ armoredMessage: e.target.result });
+                const decryptedMessage = await openpgp.decrypt({ message: message, passwords: password, format: "binary" });
+                data = decryptedMessage.data;
+                filename = decryptedMessage.filename;
+            } else {
+                const message = await openpgp.createMessage({ text: e.target.result, filename: file.name, date: file.lastModified });
+                const encryptedMessage = await openpgp.encrypt({ message: message, passwords: password });
+                data = encryptedMessage;
+                filename = file.name + ".pgp";
+                console.log(encryptedMessage);
+            }
+            const url = window.URL.createObjectURL(new Blob([data]));
+            a.href = url;
+            a.style.display = "none";
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        }
+        reader.readAsBinaryString(file);
+    });
+</script>
 <footer>
 <a href=https://github.com/NilsIrl/tools>Source code</a>
 <p>&copy; 2021 Nils André</p>
