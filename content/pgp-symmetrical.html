@@ -2,11 +2,23 @@
 title: "PGP Symmetrical Encryption/Decryption Online"
 description: A private (absolutely nothing is sent over the network) PGP symmetrical encryptor/decryptor
 ---
+<style>
+    #download {
+        display: none;
+    }
+
+    #usermessage {
+        color: red;
+    }
+</style>
 <form id="form">
+    <p id="usermessage"></p>
     <input type="file" name="file" id="file" required>
     <div>
     <label for="key">Symmetric key: </label>
-    <input type="password" id="key" name="key" required>
+    <input type="password" id="key" name="key">
+    <input type="checkbox" id="visible_key">
+    <label for="visible_key">Show Key</label>
     </div>
     <div>
         <input type="radio" name="action" value="decrypt" id="decryptChoice" checked>
@@ -18,39 +30,54 @@ description: A private (absolutely nothing is sent over the network) PGP symmetr
     </div>
     <input type="submit">
 </form>
+<a id="download"></a>
 <script type="module">
     import * as openpgp from 'https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.mjs';
-    let form = document.getElementById("form");
+    const download_link = document.getElementById("download");
+    const form = document.getElementById("form");
+    const usermessage = document.getElementById("usermessage");
+    const key_visibility_checkbox = document.getElementById("visible_key");
+    const key_field = document.getElementById("key");
+    key_visibility_checkbox.addEventListener('change', (event) => {
+        key_field.type = key_visibility_checkbox.checked ? "text" : "password";
+    });
+
+    function download(data, filename) {
+        const url = window.URL.createObjectURL(new Blob([data]));
+        download_link.download = filename;
+        download_link.href = url;
+        download_link.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function show_error(error) {
+        usermessage.innerText = error.message;
+    }
+
+    function clear_message() {
+        usermessage.innerText = "";
+    }
+
     form.addEventListener('submit', event => {
         event.preventDefault();
-        let password = document.getElementById("key").value;
-        let reader = new FileReader();
-        let decryptChoice = document.getElementById("decryptChoice").checked;
-        let file = document.getElementById("file").files[0];
-        reader.onload = async (e) => {
-            const a = document.createElement("a");
-            let data;
-            let filename;
+
+        const password = key_field.value;
+        const reader = new FileReader();
+        const decryptChoice = document.getElementById("decryptChoice").checked;
+        const file = document.getElementById("file").files[0];
+
+        reader.onload = (e) => {
             if (decryptChoice) {
-                const message = await openpgp.readMessage({ armoredMessage: e.target.result });
-                const decryptedMessage = await openpgp.decrypt({ message: message, passwords: password, format: "binary" });
-                data = decryptedMessage.data;
-                filename = decryptedMessage.filename;
+                openpgp.readMessage({ armoredMessage: e.target.result })
+                    .then(message => openpgp.decrypt({ message: message, passwords: password, format: "binary" }))
+                    .then(decrypted => download(decrypted.data, decrypted.filename))
+                    .then(clear_message, show_error);
             } else {
-                const message = await openpgp.createMessage({ text: e.target.result, filename: file.name, date: file.lastModified });
-                const encryptedMessage = await openpgp.encrypt({ message: message, passwords: password });
-                data = encryptedMessage;
-                filename = file.name + ".pgp";
-                console.log(encryptedMessage);
+                openpgp.createMessage({ text: e.target.result, filename: file.name, date: file.lastModified })
+                    .then(message => openpgp.encrypt({ message: message, passwords: password }))
+                    .then(encryptedMessage => download(encryptedMessage, file.name + ".pgp"))
+                    .then(clear_message, show_error);
             }
-            const url = window.URL.createObjectURL(new Blob([data]));
-            a.href = url;
-            a.style.display = "none";
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
         }
         reader.readAsBinaryString(file);
     });
