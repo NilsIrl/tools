@@ -1,0 +1,94 @@
+---
+title: "Houseparty exporter"
+---
+<style>
+ol li {
+  list-style-type: none;
+  padding: 0.625em;
+  border-radius: 0.625em;
+}
+
+ol {
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
+}
+
+.from-other {
+  align-self: flex-start;
+
+  color: rgb(51, 51, 51);
+  background-color: rgb(245, 245, 245);
+}
+
+.from-me {
+  align-self: flex-end;
+
+  background-color: rgb(50, 118, 255);
+  color: white;
+}
+
+#app div {
+  border: solid;
+  border-radius: 8px;
+}
+
+#app ul {
+  border: solid;
+  height: 200px;
+  overflow: auto;
+}
+
+#app div form {
+  margin: 5px;
+  padding: 10px;
+  border: 1px solid;
+}
+
+#app form {
+  border: solid;
+  margin: 5px;
+  border-radius: 8px;
+}
+</style>
+<div id="app">
+  <p :style="{ color: 'red' }" v-if="message.length !== 0">{{ message }}</p>
+  <div>
+    <h3>Import data<h3>
+    <form @submit.prevent="login">
+      <h4>From houseparty</h4>
+      <label for="username">Username: </label>
+      <input v-model="username" id="username" type="text" required>
+      <label for="password">Password: </label>
+      <input v-model="password" id="password" type="password" required>
+      <input type="submit">
+    </form>
+
+    <form>
+      <h4>From file</h4>
+      <label for="upload">Select file to import: </label>
+      <input @change="upload" id="upload" type="file" accept="application/json" required>
+    </form>
+  </div>
+
+  <template v-if="'userId' in data">
+    <form @submit.prevent="download">
+      <label for="download">Export your data before October so you can view your notes and relationships in the future.</label>
+      <input id="download" value="Export data." type="submit">
+      <a id="download_file" download="houseparty.json"></a>
+    </form>
+
+    <ul>
+      <template v-for="user in users_sorted_by_chat_count" :key="user.id">
+        <input type="radio" :id="user.id" :value="user.id" v-model="selected_chat">
+        <label :for="user.id">{{ user.fullName }} ({{ user.username }}) - {{ chatCount(user.id) }} message(s)</label>
+        <br>
+      </template>
+    </ul>
+
+    <ol>
+      <li :title="note.sentAt" :class="[fromMe(note) ? 'from-me' : 'from-other']" v-for="note in chats[selected_chat]" v-if="chatCount(selected_chat) > 0">{{ note.content }}</li>
+    </ol>
+  </template>
+</div>
+<script type="module" src="/houseparty-export.mjs"></script>
