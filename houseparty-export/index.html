@@ -14,6 +14,10 @@
 <h2>Houseparty exporter</h2>
 <style>ol li{list-style-type:none;padding:.625em;border-radius:.625em}ol{display:flex;gap:4px;flex-direction:column}.from-other{align-self:flex-start;color:#333;background-color:#f5f5f5}.from-me{align-self:flex-end;background-color:#3276ff;color:#fff}#app div{border:solid;border-radius:8px}#app ul{border:solid;height:200px;overflow:auto}#app div form{margin:5px;padding:10px;border:1px solid}#app form{border:solid;margin:5px;border-radius:8px}</style>
 <div id=app>
+<p><a href=https://houseparty.com/blog/saying-goodbye-to-houseparty/>Houseparty
+will be discontinued in October.</a> This is a basic tool that will allow
+you to download your data before it is too late. All operations are executed
+client side so it is 100% private.</p>
 <p :style="{ color: 'red' }" v-if="message.length !== 0">{{ message }}</p>
 <div>
 <h3>Import data<h3>
@@ -37,6 +41,7 @@
 <input id=download value="Export data." type=submit>
 <a id=download_file download=houseparty.json></a>
 </form>
+<h3>{{ data.users.length }} Chat(s)</h3>
 <ul>
 <template v-for="user in users_sorted_by_chat_count" :key=user.id>
 <input type=radio :id=user.id :value=user.id v-model=selected_chat>
