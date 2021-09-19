@@ -1,5 +1,6 @@
 ---
 title: "Houseparty exporter"
+description: View, import and export your data before houseparty shuts down.
 ---
 <style>
 ol li {
@@ -52,6 +53,11 @@ ol {
 }
 </style>
 <div id="app">
+  <p><a
+    href="https://houseparty.com/blog/saying-goodbye-to-houseparty/">Houseparty
+    will be discontinued in October.</a> This is a basic tool that will allow
+  you to download your data before it is too late. All operations are executed
+  client side so it is 100% private.</p>
   <p :style="{ color: 'red' }" v-if="message.length !== 0">{{ message }}</p>
   <div>
     <h3>Import data<h3>
@@ -78,6 +84,7 @@ ol {
       <a id="download_file" download="houseparty.json"></a>
     </form>
 
+    <h3>{{ data.users.length }} Chat(s)</h3>
     <ul>
       <template v-for="user in users_sorted_by_chat_count" :key="user.id">
         <input type="radio" :id="user.id" :value="user.id" v-model="selected_chat">
