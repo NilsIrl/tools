@@ -1,0 +1,357 @@
+---
+title: "Sway Monitor Config"
+description: Visually arrange monitors and generate a kanshi config from swaymsg output
+---
+<style>
+  #app { display: none; }
+  #input-section { margin-bottom: 1em; }
+  #input-section textarea { width: 100%; height: 8em; font-family: monospace; font-size: 0.85em; box-sizing: border-box; }
+  #error-msg { color: red; margin: 0.5em 0; background: #fff0f0; padding: 0.4em 0.6em; border-left: 3px solid red; white-space: pre-wrap; font-family: monospace; font-size: 0.85em; }
+  #error-msg:empty { display: none; }
+
+  #canvas-wrap { border: 1px solid #ccc; background: #f8f8f8; overflow: hidden; position: relative; width: 100%; height: 360px; margin-bottom: 1em; cursor: default; }
+  #canvas-svg { position: absolute; top: 0; left: 0; }
+
+  .monitor-rect { cursor: grab; }
+  .monitor-rect:active { cursor: grabbing; }
+  .mon-bg { stroke: #333; stroke-width: 1.5; }
+  .mon-bg.disabled-mon { fill: #ccc; stroke: #999; }
+  .mon-label { font-size: 11px; fill: #111; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+  .mon-pos { font-size: 9px; fill: #444; pointer-events: none; text-anchor: middle; }
+
+  #settings { display: flex; flex-wrap: wrap; gap: 1em; margin-bottom: 1em; }
+  .mon-card { border: 1px solid #ccc; padding: 0.6em 0.8em; min-width: 220px; background: #fafafa; }
+  .mon-card h3 { margin: 0 0 0.4em; font-size: 0.95em; }
+  .mon-card label { display: block; margin: 0.3em 0; font-size: 0.85em; }
+  .mon-card select, .mon-card input[type=number] { width: 100%; font-size: 0.85em; box-sizing: border-box; }
+
+  #output-section label { font-weight: bold; }
+  #profile-row { margin-bottom: 0.5em; }
+  #profile-row input { font-size: 0.9em; }
+  #config-out { width: 100%; height: 10em; font-family: monospace; font-size: 0.85em; box-sizing: border-box; }
+  #copy-btn { margin-top: 0.4em; }
+  #copy-msg { font-size: 0.8em; color: green; margin-left: 0.5em; }
+</style>
+
+<div id="input-section">
+  <p>Run <code>swaymsg --type get_outputs --raw | wl-copy</code> then paste below:</p>
+  <textarea id="json-input" placeholder='[{"name":"eDP-1",...}]'></textarea>
+  <button id="load-btn">Load</button>
+  <div id="error-msg"></div>
+</div>
+
+<div id="app">
+  <div id="canvas-wrap">
+    <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div id="settings"></div>
+
+  <div id="output-section">
+    <div id="profile-row">
+      <label for="profile-name">Profile name: </label>
+      <input type="text" id="profile-name" value="default" style="width:12em">
+    </div>
+    <label for="config-out">Kanshi config:</label><br>
+    <textarea id="config-out" readonly></textarea><br>
+    <button id="copy-btn">Copy to clipboard</button>
+    <span id="copy-msg"></span>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    COLORS, logicalSize, parseOutputs, overlaps, touches, normalizePositions,
+    isTouchingAny as _isTouchingAny,
+    snapToAdjacentEdge as _snapToAdjacentEdge,
+    closeGaps as _closeGaps,
+  } from '/sway-monitor-config-logic.mjs';
+
+  let monitors = []; // { name, make, model, serial, enabled, modes, selMode, scale, transform, x, y }
+  let svgEl, wrapEl;
+  let drag = null; // { idx, startMouseX, startMouseY, startMonX, startMonY }
+  let viewBox = { x: 0, y: 0, w: 1000, h: 600 };
+
+  function isTouchingAny(idx)      { return _isTouchingAny(monitors, idx); }
+  function snapToAdjacentEdge(idx) { _snapToAdjacentEdge(monitors, idx); }
+  function closeGaps(movedIdx)     { _closeGaps(monitors, movedIdx); }
+
+  function recomputeViewBox() {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const m of monitors) {
+      const { w, h } = logicalSize(m);
+      minX = Math.min(minX, m.x);
+      minY = Math.min(minY, m.y);
+      maxX = Math.max(maxX, m.x + w);
+      maxY = Math.max(maxY, m.y + h);
+    }
+    const pad = 60;
+    viewBox = { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+    const vbH = Math.max(viewBox.h, viewBox.w * 0.35);
+    svgEl.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${vbH}`);
+    svgEl.setAttribute('width', '100%');
+    svgEl.setAttribute('height', wrapEl.clientHeight || 360);
+  }
+
+  function renderSVG() {
+    svgEl.innerHTML = '';
+    recomputeViewBox();
+    monitors.forEach((mon, idx) => {
+      const { w, h } = logicalSize(mon);
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'monitor-rect');
+
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', mon.x);
+      rect.setAttribute('y', mon.y);
+      rect.setAttribute('width', w);
+      rect.setAttribute('height', h);
+      rect.setAttribute('fill', mon.enabled ? mon.color : '#ccc');
+      rect.setAttribute('stroke', '#333');
+      rect.setAttribute('stroke-width', 2);
+      rect.setAttribute('rx', 3);
+      g.appendChild(rect);
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', mon.x + w / 2);
+      label.setAttribute('y', mon.y + h / 2 - 8);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('dominant-baseline', 'middle');
+      label.setAttribute('font-size', Math.min(w, h) * 0.12);
+      label.setAttribute('fill', '#111');
+      label.setAttribute('pointer-events', 'none');
+      label.textContent = mon.name;
+      g.appendChild(label);
+
+      const mode = mon.modes[mon.selMode];
+      const sublabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      sublabel.setAttribute('x', mon.x + w / 2);
+      sublabel.setAttribute('y', mon.y + h / 2 + Math.min(w, h) * 0.07);
+      sublabel.setAttribute('text-anchor', 'middle');
+      sublabel.setAttribute('dominant-baseline', 'middle');
+      sublabel.setAttribute('font-size', Math.min(w, h) * 0.085);
+      sublabel.setAttribute('fill', '#333');
+      sublabel.setAttribute('pointer-events', 'none');
+      sublabel.textContent = `${mode.width}×${mode.height}`;
+      g.appendChild(sublabel);
+
+      const poslabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      poslabel.setAttribute('x', mon.x + w / 2);
+      poslabel.setAttribute('y', mon.y + h - Math.min(w, h) * 0.07);
+      poslabel.setAttribute('text-anchor', 'middle');
+      poslabel.setAttribute('dominant-baseline', 'auto');
+      poslabel.setAttribute('font-size', Math.min(w, h) * 0.075);
+      poslabel.setAttribute('fill', '#555');
+      poslabel.setAttribute('pointer-events', 'none');
+      poslabel.textContent = `(${mon.x}, ${mon.y})`;
+      g.appendChild(poslabel);
+
+      g.addEventListener('mousedown', e => startDrag(e, idx));
+      svgEl.appendChild(g);
+    });
+  }
+
+  function svgPoint(e) {
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }
+
+  function startDrag(e, idx) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const p = svgPoint(e);
+    drag = { idx, startMouseX: p.x, startMouseY: p.y, startMonX: monitors[idx].x, startMonY: monitors[idx].y };
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', endDrag);
+  }
+
+  function onDrag(e) {
+    if (!drag) return;
+    const p = svgPoint(e);
+    const dx = p.x - drag.startMouseX;
+    const dy = p.y - drag.startMouseY;
+    monitors[drag.idx].x = Math.round(drag.startMonX + dx);
+    monitors[drag.idx].y = Math.round(drag.startMonY + dy);
+    snapToAdjacentEdge(drag.idx);
+    renderSVG();
+    updateConfig();
+    syncCardPosition(drag.idx);
+  }
+
+  function endDrag() {
+    const idx = drag.idx;
+    drag = null;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    snapToAdjacentEdge(idx);
+    closeGaps(idx);
+    renderSVG();
+    updateConfig();
+    syncCardPosition(idx);
+  }
+
+  function syncCardPosition(idx) {
+    const xEl = document.getElementById(`pos-x-${idx}`);
+    const yEl = document.getElementById(`pos-y-${idx}`);
+    if (xEl) xEl.value = monitors[idx].x;
+    if (yEl) yEl.value = monitors[idx].y;
+  }
+
+  function renderSettings() {
+    const container = document.getElementById('settings');
+    container.innerHTML = '';
+    monitors.forEach((mon, idx) => {
+      const card = document.createElement('div');
+      card.className = 'mon-card';
+      card.style.borderLeft = `4px solid ${mon.color}`;
+
+      const title = document.createElement('h3');
+      title.textContent = mon.name;
+      if (mon.make !== 'Unknown') title.textContent += ` (${mon.make} ${mon.model})`;
+      card.appendChild(title);
+
+      // enabled
+      const enLabel = document.createElement('label');
+      const enCb = document.createElement('input');
+      enCb.type = 'checkbox'; enCb.checked = mon.enabled;
+      enCb.addEventListener('change', () => { monitors[idx].enabled = enCb.checked; renderSVG(); updateConfig(); });
+      enLabel.appendChild(enCb);
+      enLabel.appendChild(document.createTextNode(' Enabled'));
+      card.appendChild(enLabel);
+
+      // mode
+      const modeLabel = document.createElement('label');
+      modeLabel.textContent = 'Mode:';
+      const modeSel = document.createElement('select');
+      mon.modes.forEach((m, mi) => {
+        const opt = document.createElement('option');
+        opt.value = mi;
+        opt.textContent = `${m.width}×${m.height} @ ${m.refresh}Hz`;
+        if (mi === mon.selMode) opt.selected = true;
+        modeSel.appendChild(opt);
+      });
+      modeSel.addEventListener('change', () => {
+        monitors[idx].selMode = parseInt(modeSel.value);
+        renderSVG(); updateConfig();
+      });
+      modeLabel.appendChild(modeSel);
+      card.appendChild(modeLabel);
+
+      // scale
+      const scaleLabel = document.createElement('label');
+      scaleLabel.textContent = 'Scale:';
+      const scaleIn = document.createElement('input');
+      scaleIn.type = 'number'; scaleIn.min = '0.5'; scaleIn.max = '4'; scaleIn.step = '0.25';
+      scaleIn.value = mon.scale;
+      scaleIn.addEventListener('change', () => {
+        const v = parseFloat(scaleIn.value);
+        if (v > 0) { monitors[idx].scale = v; renderSVG(); updateConfig(); }
+      });
+      scaleLabel.appendChild(scaleIn);
+      card.appendChild(scaleLabel);
+
+      // transform
+      const trLabel = document.createElement('label');
+      trLabel.textContent = 'Transform:';
+      const trSel = document.createElement('select');
+      ['normal','90','180','270','flipped','flipped-90','flipped-180','flipped-270'].forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        if (t === mon.transform) opt.selected = true;
+        trSel.appendChild(opt);
+      });
+      trSel.addEventListener('change', () => {
+        monitors[idx].transform = trSel.value;
+        renderSVG(); updateConfig();
+      });
+      trLabel.appendChild(trSel);
+      card.appendChild(trLabel);
+
+      // position inputs
+      const posLabel = document.createElement('label');
+      posLabel.textContent = 'Position (X, Y):';
+      const posRow = document.createElement('div');
+      posRow.style.display = 'flex'; posRow.style.gap = '4px';
+      const xIn = document.createElement('input');
+      xIn.type = 'number'; xIn.id = `pos-x-${idx}`; xIn.value = mon.x; xIn.style.width = '50%';
+      const yIn = document.createElement('input');
+      yIn.type = 'number'; yIn.id = `pos-y-${idx}`; yIn.value = mon.y; yIn.style.width = '50%';
+      [xIn, yIn].forEach(inp => inp.addEventListener('change', () => {
+        monitors[idx].x = parseInt(xIn.value) || 0;
+        monitors[idx].y = parseInt(yIn.value) || 0;
+        renderSVG(); updateConfig();
+      }));
+      posRow.appendChild(xIn); posRow.appendChild(yIn);
+      posLabel.appendChild(posRow);
+      card.appendChild(posLabel);
+
+      container.appendChild(card);
+    });
+  }
+
+  function outputId(mon) {
+    if (mon.make !== 'Unknown' && mon.model !== 'Unknown' && mon.serial !== 'Unknown') {
+      return `"${mon.make} ${mon.model} ${mon.serial}"`;
+    }
+    return mon.name;
+  }
+
+  function updateConfig() {
+    const profileName = document.getElementById('profile-name').value || 'default';
+    const { minX, minY } = normalizePositions(monitors);
+    const lines = [`profile ${profileName} {`];
+    for (const mon of monitors) {
+      const id = outputId(mon);
+      if (!mon.enabled) {
+        lines.push(`    output ${id} disable`);
+        continue;
+      }
+      const m = mon.modes[mon.selMode];
+      let line = `    output ${id} mode ${m.width}x${m.height}@${m.refresh}Hz`;
+      line += ` position ${mon.x - minX},${mon.y - minY}`;
+      line += ` scale ${mon.scale}`;
+      if (mon.transform && mon.transform !== 'normal') {
+        line += ` transform ${mon.transform}`;
+      }
+      lines.push(line);
+    }
+    lines.push('}');
+    document.getElementById('config-out').value = lines.join('\n');
+  }
+
+  function init() {
+    svgEl = document.getElementById('canvas-svg');
+    wrapEl = document.getElementById('canvas-wrap');
+
+    document.getElementById('load-btn').addEventListener('click', () => {
+      const raw = document.getElementById('json-input').value.trim();
+      const errEl = document.getElementById('error-msg');
+      errEl.textContent = '';
+      try {
+        monitors = parseOutputs(raw);
+        if (!monitors.length) throw new Error('No outputs found in JSON');
+        document.getElementById('app').style.display = 'block';
+        renderSVG();
+        renderSettings();
+        updateConfig();
+      } catch(e) {
+        errEl.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('profile-name').addEventListener('input', updateConfig);
+
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      const text = document.getElementById('config-out').value;
+      navigator.clipboard.writeText(text).then(() => {
+        const msg = document.getElementById('copy-msg');
+        msg.textContent = 'Copied!';
+        setTimeout(() => { msg.textContent = ''; }, 2000);
+      });
+    });
+  }
+
+  // <script type="module"> is deferred by default, so the DOM is already ready here.
+  init();
+</script>
