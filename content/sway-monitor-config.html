@@ -61,7 +61,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
 
 <script type="module">
   import {
-    COLORS, logicalSize, parseOutputs, overlaps, touches, normalizePositions,
+    COLORS, logicalSize, parseOutputs, overlaps, touches, normalizePositions, mhzToHz,
     isTouchingAny as _isTouchingAny,
     snapToAdjacentEdge as _snapToAdjacentEdge,
     closeGaps as _closeGaps,
@@ -227,7 +227,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
       mon.modes.forEach((m, mi) => {
         const opt = document.createElement('option');
         opt.value = mi;
-        opt.textContent = `${m.width}×${m.height} @ ${m.refresh}Hz`;
+        opt.textContent = `${m.width}×${m.height} @ ${mhzToHz(m.refresh)}Hz`;
         if (mi === mon.selMode) opt.selected = true;
         modeSel.appendChild(opt);
       });
@@ -308,7 +308,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
         continue;
       }
       const m = mon.modes[mon.selMode];
-      let line = `    output ${id} mode ${m.width}x${m.height}@${m.refresh}Hz`;
+      let line = `    output ${id} mode ${m.width}x${m.height}@${mhzToHz(m.refresh)}Hz`;
       line += ` position ${mon.x - minX},${mon.y - minY}`;
       line += ` scale ${mon.scale}`;
       if (mon.transform && mon.transform !== 'normal') {

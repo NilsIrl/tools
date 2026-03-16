@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  logicalSize, overlaps, touches, normalizePositions,
+  logicalSize, overlaps, touches, normalizePositions, mhzToHz,
   isTouchingAny, snapToAdjacentEdge, closeGaps, parseOutputs,
 } from '../static/sway-monitor-config-logic.mjs';
 
@@ -10,7 +10,7 @@ function mon(x, y, w, h, { scale = 1, transform = 'normal', enabled = true } = {
   return {
     x, y, enabled, scale, transform,
     make: 'Unknown', model: 'Unknown', serial: 'Unknown',
-    modes: [{ width: w * scale, height: h * scale, refresh: 60 }],
+    modes: [{ width: w * scale, height: h * scale, refresh: 60000 }],
     selMode: 0, color: '#fff',
     name: `output-${x}-${y}`,
   };
@@ -163,6 +163,29 @@ test('logicalSize: normal transform keeps dimensions', () => {
   const { w, h } = logicalSize(mon(0, 0, 1920, 1080));
   assert.equal(w, 1920);
   assert.equal(h, 1080);
+});
+
+// ─── mhzToHz: integer arithmetic refresh rate formatting ─────────────────────
+
+test('mhzToHz: integer arithmetic, no floating point', () => {
+  assert.equal(mhzToHz(164554), '164.554'); // was being rounded to 165 (the bug)
+  assert.equal(mhzToHz(120000), '120');
+  assert.equal(mhzToHz(59940),  '59.94');
+  assert.equal(mhzToHz(60001),  '60.001');
+  assert.equal(mhzToHz(60000),  '60');
+});
+
+test('parseOutputs: refresh stored as raw mHz integer, not rounded Hz (165Hz bug)', () => {
+  const json = JSON.stringify([{
+    name: 'DP-3', make: 'Microstep', model: 'MSI MPG323CQR', serial: '0x00000B20',
+    active: true, scale: 1.0, transform: 'normal',
+    rect: { x: 0, y: 0, width: 2560, height: 1440 },
+    current_mode: { width: 2560, height: 1440, refresh: 164554 },
+    modes: [{ width: 2560, height: 1440, refresh: 164554 }],
+  }]);
+  const ms = parseOutputs(json);
+  assert.equal(ms[0].modes[0].refresh, 164554);             // raw mHz, not 165
+  assert.equal(ms[0].modes[ms[0].selMode].refresh, 164554); // selMode found correctly
 });
 
 // ─── parseOutputs: integration with real clipboard JSON ──────────────────────

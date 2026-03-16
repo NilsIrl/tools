@@ -1,5 +1,14 @@
 export const COLORS = ['#a8d8ea','#a8e6cf','#ffd3b6','#ffaaa5','#d4a5a5','#b8c0cc','#c9c0d3','#f0d9ff'];
 
+// Convert millihertz (integer) to a Hz string using only integer arithmetic.
+// 164554 → "164.554"   120000 → "120"   59940 → "59.94"   60001 → "60.001"
+export function mhzToHz(mhz) {
+  const whole = Math.floor(mhz / 1000);
+  const frac  = mhz % 1000;
+  if (frac === 0) return `${whole}`;
+  return `${whole}.${frac.toString().padStart(3, '0').replace(/0+$/, '')}`;
+}
+
 export function logicalSize(mon) {
   const m = mon.modes[mon.selMode];
   const s = mon.scale;
@@ -17,7 +26,7 @@ export function parseOutputs(json) {
   return arr.map((o, i) => {
     const modes = (o.modes || []).map(m => ({
       width: m.width, height: m.height,
-      refresh: Math.round(m.refresh / 1000)
+      refresh: m.refresh
     }));
     const seen = new Set();
     const uniqModes = modes.filter(m => {
@@ -28,7 +37,7 @@ export function parseOutputs(json) {
 
     const curW = o.current_mode ? o.current_mode.width : (uniqModes[0] ? uniqModes[0].width : 1920);
     const curH = o.current_mode ? o.current_mode.height : (uniqModes[0] ? uniqModes[0].height : 1080);
-    const curR = o.current_mode ? Math.round(o.current_mode.refresh / 1000) : 60;
+    const curR = o.current_mode ? o.current_mode.refresh : 0;
 
     let selMode = uniqModes.findIndex(m => m.width === curW && m.height === curH && m.refresh === curR);
     if (selMode < 0) selMode = 0;
