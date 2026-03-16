@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   logicalSize, overlaps, touches, normalizePositions, mhzToHz,
-  isTouchingAny, snapToAdjacentEdge, closeGaps, parseOutputs,
+  isTouchingAny, snapToAdjacentEdge, closeGaps, parseOutputs, applySettingChange,
 } from '../static/sway-monitor-config-logic.mjs';
 
 // Build a minimal monitor object. w and h are the desired *logical* pixel dimensions.
@@ -186,6 +186,28 @@ test('parseOutputs: refresh stored as raw mHz integer, not rounded Hz (165Hz bug
   const ms = parseOutputs(json);
   assert.equal(ms[0].modes[0].refresh, 164554);             // raw mHz, not 165
   assert.equal(ms[0].modes[ms[0].selMode].refresh, 164554); // selMode found correctly
+});
+
+// ─── applySettingChange: layout invariants maintained after settings change ───
+
+test('applySettingChange: switching to a larger mode pushes adjacent monitor out', () => {
+  const monitors = [mon(0, 0, 1920, 1080), mon(1920, 0, 1920, 1080)];
+  monitors[0].modes.push({ width: 2560, height: 1080, refresh: 60000 }); // wider mode
+  applySettingChange(monitors, 0, { selMode: 1 });
+  const { w } = logicalSize(monitors[0]);
+  assert.ok(!overlaps(monitors[0].x, monitors[0].y, w, 1080,
+                      monitors[1].x, monitors[1].y, 1920, 1080), 'must not overlap');
+  assert.ok(isTouchingAny(monitors, 1), 'B must still touch A');
+});
+
+test('applySettingChange: switching to a smaller mode pulls adjacent monitor in', () => {
+  const monitors = [mon(0, 0, 1920, 1080), mon(1920, 0, 1920, 1080)];
+  monitors[0].modes.push({ width: 1280, height: 1080, refresh: 60000 }); // narrower mode
+  applySettingChange(monitors, 0, { selMode: 1 });
+  const { w } = logicalSize(monitors[0]);
+  assert.ok(isTouchingAny(monitors, 1), 'B must touch A after gap is closed');
+  assert.ok(!overlaps(monitors[0].x, monitors[0].y, w, 1080,
+                      monitors[1].x, monitors[1].y, 1920, 1080), 'must not overlap');
 });
 
 // ─── parseOutputs: integration with real clipboard JSON ──────────────────────

@@ -62,6 +62,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
 <script type="module">
   import {
     COLORS, logicalSize, parseOutputs, overlaps, touches, normalizePositions, mhzToHz,
+    applySettingChange as _applySettingChange,
     isTouchingAny as _isTouchingAny,
     snapToAdjacentEdge as _snapToAdjacentEdge,
     closeGaps as _closeGaps,
@@ -72,9 +73,10 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
   let drag = null; // { idx, startMouseX, startMouseY, startMonX, startMonY }
   let viewBox = { x: 0, y: 0, w: 1000, h: 600 };
 
-  function isTouchingAny(idx)      { return _isTouchingAny(monitors, idx); }
-  function snapToAdjacentEdge(idx) { _snapToAdjacentEdge(monitors, idx); }
-  function closeGaps(movedIdx)     { _closeGaps(monitors, movedIdx); }
+  function isTouchingAny(idx)           { return _isTouchingAny(monitors, idx); }
+  function snapToAdjacentEdge(idx)      { _snapToAdjacentEdge(monitors, idx); }
+  function closeGaps(movedIdx)          { _closeGaps(monitors, movedIdx); }
+  function applySettingChange(idx, patch) { _applySettingChange(monitors, idx, patch); renderSVG(); updateConfig(); }
 
   function recomputeViewBox() {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -232,8 +234,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
         modeSel.appendChild(opt);
       });
       modeSel.addEventListener('change', () => {
-        monitors[idx].selMode = parseInt(modeSel.value);
-        renderSVG(); updateConfig();
+        applySettingChange(idx, { selMode: parseInt(modeSel.value) });
       });
       modeLabel.appendChild(modeSel);
       card.appendChild(modeLabel);
@@ -246,7 +247,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
       scaleIn.value = mon.scale;
       scaleIn.addEventListener('change', () => {
         const v = parseFloat(scaleIn.value);
-        if (v > 0) { monitors[idx].scale = v; renderSVG(); updateConfig(); }
+        if (v > 0) applySettingChange(idx, { scale: v });
       });
       scaleLabel.appendChild(scaleIn);
       card.appendChild(scaleLabel);
@@ -262,8 +263,7 @@ description: Visually arrange monitors and generate a kanshi config from swaymsg
         trSel.appendChild(opt);
       });
       trSel.addEventListener('change', () => {
-        monitors[idx].transform = trSel.value;
-        renderSVG(); updateConfig();
+        applySettingChange(idx, { transform: trSel.value });
       });
       trLabel.appendChild(trSel);
       card.appendChild(trLabel);

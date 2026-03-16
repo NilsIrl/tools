@@ -117,6 +117,13 @@ export function snapToAdjacentEdge(monitors, idx) {
   monitors[idx].y = bestY;
 }
 
+// Apply a setting change to a monitor and recompute the layout so adjacent
+// monitors are pushed/pulled to eliminate any resulting overlaps or gaps.
+export function applySettingChange(monitors, idx, patch) {
+  Object.assign(monitors[idx], patch);
+  closeGaps(monitors, idx);
+}
+
 export function closeGaps(monitors, movedIdx) {
   let changed = true;
   while (changed) {
