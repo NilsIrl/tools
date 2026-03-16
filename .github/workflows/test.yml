@@ -1,0 +1,10 @@
+name: Test
+on:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test
+        run: node --test tests/sway-monitor-config.test.mjs
