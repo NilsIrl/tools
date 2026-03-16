@@ -1,3 +1,181 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Homepage on Nils' Toolbox</title><link>https://tools.nilsand.re/</link><description>Recent content in Homepage on Nils' Toolbox</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><atom:link href="https://tools.nilsand.re/index.xml" rel="self" type="application/rss+xml"/><item><title>Handoutify</title><link>https://tools.nilsand.re/handoutify/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/handoutify/</guid><description>Star handoutify on GitHub!</description></item><item><title>Houseparty exporter</title><link>https://tools.nilsand.re/houseparty-export/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/houseparty-export/</guid><description>Houseparty will be discontinued in October. This is a basic tool that will allow you to download your data before it is too late. All operations are executed client side so it is 100% private.
-{{ message }}
-Import data From houseparty Username: Password: From file Select file to import: Export your data before October so you can view your notes and relationships in the future. {{ data.users.length }} Chat(s) {{ user.</description></item><item><title>PGP Symmetrical Encryption/Decryption Online</title><link>https://tools.nilsand.re/pgp-symmetrical/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/pgp-symmetrical/</guid><description> Symmetric key: Show Key Decrypt Encrypt</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Homepage on Nils' Toolbox</title><link>https://tools.nilsand.re/</link><description>Recent content in Homepage on Nils' Toolbox</description><generator>Hugo</generator><language>en-us</language><atom:link href="https://tools.nilsand.re/index.xml" rel="self" type="application/rss+xml"/><item><title>Handoutify</title><link>https://tools.nilsand.re/handoutify/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/handoutify/</guid><description>&lt;p&gt;&lt;a href="https://github.com/NilsIrl/handoutify"&gt;Star handoutify on GitHub!&lt;/a&gt;&lt;/p&gt;
+&lt;iframe id="handoutify-iframe" title="PDF conversion page" src="https://handoutify.tools.nilsand.re"&gt;&lt;/iframe&gt;
+&lt;style&gt;
+html, body {
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+iframe {
+	border: unset;
+	flex: 1;
+}
+&lt;/style&gt;</description></item><item><title>Houseparty exporter</title><link>https://tools.nilsand.re/houseparty-export/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/houseparty-export/</guid><description>&lt;style&gt;
+ol li {
+ list-style-type: none;
+ padding: 0.625em;
+ border-radius: 0.625em;
+}
+
+ol {
+ display: flex;
+ gap: 4px;
+ flex-direction: column;
+}
+
+.from-other {
+ align-self: flex-start;
+
+ color: rgb(51, 51, 51);
+ background-color: rgb(245, 245, 245);
+}
+
+.from-me {
+ align-self: flex-end;
+
+ background-color: rgb(50, 118, 255);
+ color: white;
+}
+
+#app div {
+ border: solid;
+ border-radius: 8px;
+}
+
+#app ul {
+ border: solid;
+ height: 200px;
+ overflow: auto;
+}
+
+#app div form {
+ margin: 5px;
+ padding: 10px;
+ border: 1px solid;
+}
+
+#app form {
+ border: solid;
+ margin: 5px;
+ border-radius: 8px;
+}
+&lt;/style&gt;
+&lt;div id="app"&gt;
+ &lt;p&gt;&lt;a
+ href="https://houseparty.com/blog/saying-goodbye-to-houseparty/"&gt;Houseparty
+ will be discontinued in October.&lt;/a&gt; This is a basic tool that will allow
+ you to download your data before it is too late. All operations are executed
+ client side so it is 100% private.&lt;/p&gt;</description></item><item><title>PGP Symmetrical Encryption/Decryption Online</title><link>https://tools.nilsand.re/pgp-symmetrical/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/pgp-symmetrical/</guid><description>&lt;style&gt;
+ #download {
+ display: none;
+ }
+
+ #usermessage {
+ color: red;
+ }
+&lt;/style&gt;
+&lt;form id="form"&gt;
+ &lt;p id="usermessage"&gt;&lt;/p&gt;
+ &lt;input type="file" name="file" id="file" required&gt;
+ &lt;div&gt;
+ &lt;label for="key"&gt;Symmetric key: &lt;/label&gt;
+ &lt;input type="password" id="key" name="key"&gt;
+ &lt;input type="checkbox" id="visible_key"&gt;
+ &lt;label for="visible_key"&gt;Show Key&lt;/label&gt;
+ &lt;/div&gt;
+ &lt;div&gt;
+ &lt;input type="radio" name="action" value="decrypt" id="decryptChoice" checked&gt;
+ &lt;label for="decryptChoice"&gt;Decrypt&lt;/label&gt;
+ &lt;/div&gt;
+ &lt;div&gt;
+ &lt;input type="radio" name="action" value="encrypt" id="encryptChoice"&gt;
+ &lt;label for="encryptChoice"&gt;Encrypt&lt;/label&gt;
+ &lt;/div&gt;
+ &lt;input type="submit"&gt;
+&lt;/form&gt;
+&lt;a id="download"&gt;&lt;/a&gt;
+&lt;script type="module"&gt;
+ import * as openpgp from 'https://unpkg.com/openpgp@5.0.0-6/dist/openpgp.min.mjs';
+ const download_link = document.getElementById("download");
+ const form = document.getElementById("form");
+ const usermessage = document.getElementById("usermessage");
+ const key_visibility_checkbox = document.getElementById("visible_key");
+ const key_field = document.getElementById("key");
+ key_visibility_checkbox.addEventListener('change', (event) =&gt; {
+ key_field.type = key_visibility_checkbox.checked ? "text" : "password";
+ });
+
+ function download(data, filename) {
+ const url = window.URL.createObjectURL(new Blob([data]));
+ download_link.download = filename;
+ download_link.href = url;
+ download_link.click();
+ window.URL.revokeObjectURL(url);
+ }
+
+ function show_error(error) {
+ usermessage.innerText = error.message;
+ }
+
+ function clear_message() {
+ usermessage.innerText = "";
+ }
+
+ form.addEventListener('submit', event =&gt; {
+ event.preventDefault();
+
+ const password = key_field.value;
+ const reader = new FileReader();
+ const decryptChoice = document.getElementById("decryptChoice").checked;
+ const file = document.getElementById("file").files[0];
+
+ reader.onload = (e) =&gt; {
+ if (decryptChoice) {
+ openpgp.readMessage({ armoredMessage: e.target.result })
+ .then(message =&gt; openpgp.decrypt({ message: message, passwords: password, format: "binary" }))
+ .then(decrypted =&gt; download(decrypted.data, decrypted.filename))
+ .then(clear_message, show_error);
+ } else {
+ openpgp.createMessage({ text: e.target.result, filename: file.name, date: file.lastModified })
+ .then(message =&gt; openpgp.encrypt({ message: message, passwords: password }))
+ .then(encryptedMessage =&gt; download(encryptedMessage, file.name + ".pgp"))
+ .then(clear_message, show_error);
+ }
+ }
+ reader.readAsBinaryString(file);
+ });
+&lt;/script&gt;</description></item><item><title>Sway Monitor Config</title><link>https://tools.nilsand.re/sway-monitor-config/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://tools.nilsand.re/sway-monitor-config/</guid><description>&lt;style&gt;
+ #app { display: none; }
+ #input-section { margin-bottom: 1em; }
+ #input-section textarea { width: 100%; height: 8em; font-family: monospace; font-size: 0.85em; box-sizing: border-box; }
+ #error-msg { color: red; margin: 0.5em 0; background: #fff0f0; padding: 0.4em 0.6em; border-left: 3px solid red; white-space: pre-wrap; font-family: monospace; font-size: 0.85em; }
+ #error-msg:empty { display: none; }
+
+ #canvas-wrap { border: 1px solid #ccc; background: #f8f8f8; overflow: hidden; position: relative; width: 100%; height: 360px; margin-bottom: 1em; cursor: default; }
+ #canvas-svg { position: absolute; top: 0; left: 0; }
+
+ .monitor-rect { cursor: grab; }
+ .monitor-rect:active { cursor: grabbing; }
+ .mon-bg { stroke: #333; stroke-width: 1.5; }
+ .mon-bg.disabled-mon { fill: #ccc; stroke: #999; }
+ .mon-label { font-size: 11px; fill: #111; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+ .mon-pos { font-size: 9px; fill: #444; pointer-events: none; text-anchor: middle; }
+
+ #settings { display: flex; flex-wrap: wrap; gap: 1em; margin-bottom: 1em; }
+ .mon-card { border: 1px solid #ccc; padding: 0.6em 0.8em; min-width: 220px; background: #fafafa; }
+ .mon-card h3 { margin: 0 0 0.4em; font-size: 0.95em; }
+ .mon-card label { display: block; margin: 0.3em 0; font-size: 0.85em; }
+ .mon-card select, .mon-card input[type=number] { width: 100%; font-size: 0.85em; box-sizing: border-box; }
+
+ #output-section label { font-weight: bold; }
+ #profile-row { margin-bottom: 0.5em; }
+ #profile-row input { font-size: 0.9em; }
+ #config-out { width: 100%; height: 10em; font-family: monospace; font-size: 0.85em; box-sizing: border-box; }
+ #copy-btn { margin-top: 0.4em; }
+ #copy-msg { font-size: 0.8em; color: green; margin-left: 0.5em; }
+&lt;/style&gt;
+
+&lt;div id="input-section"&gt;
+ &lt;p&gt;Run &lt;code&gt;swaymsg --type get_outputs --raw | wl-copy&lt;/code&gt; then paste below:&lt;/p&gt;</description></item></channel></rss>
